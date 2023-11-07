@@ -1481,8 +1481,8 @@ urEnqueueUSMAdvise(ur_queue_handle_t hQueue, const void *pMem, size_t size,
                               hQueue->getContext()->getDevice()->get());
       if (Result == UR_RESULT_ERROR_INVALID_ENUMERATION) {
         setErrorMessage("mem_advise is ignored as the advice argument is not "
-                          " supported by this device.",
-                          UR_RESULT_SUCCESS);
+                        " supported by this device.",
+                        UR_RESULT_SUCCESS);
         return UR_RESULT_ERROR_ADAPTER_SPECIFIC;
       }
     }
