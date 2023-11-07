@@ -83,12 +83,8 @@ ur_result_t setCuMemAdvise(CUdeviceptr DevPtr, size_t Size,
            CU_MEM_ADVISE_UNSET_READ_MOSTLY},
           {UR_USM_ADVICE_FLAG_SET_PREFERRED_LOCATION,
            CU_MEM_ADVISE_SET_PREFERRED_LOCATION},
-          {UR_USM_ADVICE_FLAG_CLEAR_PREFERRED_LOCATION,
-           CU_MEM_ADVISE_UNSET_PREFERRED_LOCATION},
           {UR_USM_ADVICE_FLAG_SET_ACCESSED_BY_DEVICE,
            CU_MEM_ADVISE_SET_ACCESSED_BY},
-          {UR_USM_ADVICE_FLAG_CLEAR_ACCESSED_BY_DEVICE,
-           CU_MEM_ADVISE_UNSET_ACCESSED_BY},
       };
   for (auto &FlagPair : URToCUMemAdviseDeviceFlagsMap) {
     if (URAdviceFlags & FlagPair.first) {
@@ -117,7 +113,10 @@ ur_result_t setCuMemAdvise(CUdeviceptr DevPtr, size_t Size,
   std::array<ur_usm_advice_flags_t, 4> UnmappedMemAdviceFlags = {
       UR_USM_ADVICE_FLAG_SET_NON_ATOMIC_MOSTLY,
       UR_USM_ADVICE_FLAG_CLEAR_NON_ATOMIC_MOSTLY,
-      UR_USM_ADVICE_FLAG_BIAS_CACHED, UR_USM_ADVICE_FLAG_BIAS_UNCACHED};
+      UR_USM_ADVICE_FLAG_BIAS_CACHED,
+      UR_USM_ADVICE_FLAG_BIAS_UNCACHED,
+      UR_USM_ADVICE_FLAG_CLEAR_ACCESSED_BY_DEVICE,
+      UR_USM_ADVICE_FLAG_CLEAR_PREFERRED_LOCATION};
 
   for (auto &UnmappedFlag : UnmappedMemAdviceFlags) {
     if (URAdviceFlags & UnmappedFlag) {
