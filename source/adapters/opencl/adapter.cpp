@@ -17,15 +17,6 @@ struct ur_adapter_handle_t_ {
 
 ur_adapter_handle_t_ adapter{};
 
-UR_APIEXPORT ur_result_t UR_APICALL urInit(ur_device_init_flags_t,
-                                           ur_loader_config_handle_t) {
-  return UR_RESULT_SUCCESS;
-}
-
-UR_APIEXPORT ur_result_t UR_APICALL urTearDown(void *) {
-  return UR_RESULT_SUCCESS;
-}
-
 UR_APIEXPORT ur_result_t UR_APICALL
 urAdapterGet(uint32_t NumEntries, ur_adapter_handle_t *phAdapters,
              uint32_t *pNumAdapters) {
@@ -75,7 +66,7 @@ UR_APIEXPORT ur_result_t UR_APICALL urAdapterGetInfo(ur_adapter_handle_t,
 
   switch (propName) {
   case UR_ADAPTER_INFO_BACKEND:
-    return ReturnValue(UR_ADAPTER_BACKEND_CUDA);
+    return ReturnValue(UR_ADAPTER_BACKEND_OPENCL);
   case UR_ADAPTER_INFO_REFERENCE_COUNT:
     return ReturnValue(adapter.RefCount.load());
   default:
