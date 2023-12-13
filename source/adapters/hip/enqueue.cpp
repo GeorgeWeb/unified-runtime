@@ -89,10 +89,12 @@ ur_result_t setHipMemAdvise(const void *DevPtr, const size_t Size,
                             ur_usm_advice_flags_t URAdviceFlags,
                             hipDevice_t Device) {
   // Handle unmapped memory advice flags
+  // FIXME: Temporary use UR_USM_ADVICE_FLAG_SET_NON_ATOMIC_MOSTLY and
+  // UR_USM_ADVICE_FLAG_CLEAR_NON_ATOMIC_MOSTLY for controlling coarse-grain
+  // memory until we introduce a new flag more appropriately. Add them back to
+  // unsupported when that happens.
   if (URAdviceFlags &
-      (UR_USM_ADVICE_FLAG_SET_NON_ATOMIC_MOSTLY |
-       UR_USM_ADVICE_FLAG_CLEAR_NON_ATOMIC_MOSTLY |
-       UR_USM_ADVICE_FLAG_BIAS_CACHED | UR_USM_ADVICE_FLAG_BIAS_UNCACHED)) {
+      (UR_USM_ADVICE_FLAG_BIAS_CACHED | UR_USM_ADVICE_FLAG_BIAS_UNCACHED)) {
     return UR_RESULT_ERROR_INVALID_ENUMERATION;
   }
 
