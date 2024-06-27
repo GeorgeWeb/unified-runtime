@@ -16,7 +16,8 @@
 #include "memory.hpp"
 #include "queue.hpp"
 
-#include <cmath>
+#include <algorithm>
+
 #include <cuda.h>
 #include <ur/ur.hpp>
 
@@ -487,6 +488,28 @@ UR_APIEXPORT ur_result_t UR_APICALL urEnqueueKernelLaunch(
   return UR_RESULT_SUCCESS;
 }
 
+namespace {
+ur_result_t queryMaxNumActiveBlocks(const size_t (&ThreadsPerBlock)[3],
+                                    size_t SharedMemBytes,
+                                    ur_kernel_handle_t hKernel,
+                                    uint32_t &MaxNumActiveBlocks) {
+  ur_device_handle_t Device = hKernel->getProgram()->getDevice();
+  ScopedContext Active(Device);
+  try {
+    const int BlockSize = static_cast<int>(ThreadsPerBlock[0]) *
+                          ThreadsPerBlock[1] * ThreadsPerBlock[2];
+    int MaxNumActiveGroupsPerCU{0};
+    UR_CHECK_ERROR(cuOccupancyMaxActiveBlocksPerMultiprocessor(
+        &MaxNumActiveGroupsPerCU, hKernel->get(), BlockSize, SharedMemBytes));
+    detail::ur::assertion(MaxNumActiveGroupsPerCU >= 0);
+    MaxNumActiveBlocks = MaxNumActiveGroupsPerCU;
+  } catch (ur_result_t Err) {
+    return Err;
+  }
+  return UR_RESULT_SUCCESS;
+}
+} // namespace
+
 UR_APIEXPORT ur_result_t UR_APICALL urEnqueueCooperativeKernelLaunchExp(
     ur_queue_handle_t hQueue, ur_kernel_handle_t hKernel, uint32_t workDim,
     const size_t *pGlobalWorkOffset, const size_t *pGlobalWorkSize,
@@ -582,6 +605,32 @@ UR_APIEXPORT ur_result_t UR_APICALL urEnqueueKernelLaunchCustomExp(
                           CuFunc, ThreadsPerBlock, BlocksPerGrid);
       Ret != UR_RESULT_SUCCESS)
     return Ret;
+
+  // Error checking for cooperative-groups kernel launch restrictions.
+  const bool LaunchCooperative =
+      std::find_if(launch_attribute.begin(), launch_attribute.end(),
+                   [](const auto &Attrib) {
+                     return Attrib.id == CU_LAUNCH_ATTRIBUTE_COOPERATIVE;
+                   }) != launch_attribute.end();
+  if (LaunchCooperative) {
+    // Bounds checking for cooperative group launches.
+    uint32_t MaxNumActiveBlocksPerCU{0};
+    if (ur_result_t Ret = queryMaxNumActiveBlocks(
+            ThreadsPerBlock, LocalSize, hKernel, MaxNumActiveBlocksPerCU);
+        Ret != UR_RESULT_SUCCESS) {
+      return Ret;
+    }
+    const uint32_t GridSize =
+        BlocksPerGrid[0] * BlocksPerGrid[1] * BlocksPerGrid[2];
+    const uint32_t MaxNumComputeUnits =
+        hKernel->getProgram()->getDevice()->getNumComputeUnits();
+    // TODO: Just return UR_RESULT_ERROR_OUT_OF_RESOURCES and handle it the runtime error handling.
+    if (GridSize > (MaxNumActiveBlocksPerCU * MaxNumComputeUnits)) {
+      setErrorMessage("The total number of blocks launched cannot exceed the maximum number of blocks per multiprocessor.",
+                  UR_RESULT_ERROR_OUT_OF_RESOURCES);
+      return UR_RESULT_ERROR_ADAPTER_SPECIFIC;
+    }
+  }
 
   try {
     std::unique_ptr<ur_event_handle_t_> RetImplEvent{nullptr};
